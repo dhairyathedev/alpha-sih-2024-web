@@ -10,7 +10,8 @@ export function VideoUploader() {
   const [uploadProgress, setUploadProgress] = useState(0)
   const [predictionProgress, setPredictionProgress] = useState(0)
   const [status, setStatus] = useState<"idle" | "uploading" | "predicting" | "complete" | "error">("idle")
-  const [isFake, setIsFake] = useState<boolean | null>(null)
+  const [fakePercentage, setFakePercentage] = useState<number | null>(null)
+  const [isLikelyDeepfake, setIsLikelyDeepfake] = useState<boolean | null>(null)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const videoRef = useRef<HTMLVideoElement>(null)
 
@@ -21,7 +22,8 @@ export function VideoUploader() {
       setStatus("idle")
       setUploadProgress(0)
       setPredictionProgress(0)
-      setIsFake(null)
+      setFakePercentage(null)
+      setIsLikelyDeepfake(null)
       setErrorMessage(null)
     }
   }
@@ -51,7 +53,8 @@ export function VideoUploader() {
       const result = await response.json()
       
       setStatus("complete")
-      setIsFake(result.is_fake)
+      setFakePercentage(result.fake_percentage)
+      setIsLikelyDeepfake(result.is_likely_deepfake)
       setPredictionProgress(100)
     } catch (error) {
       setStatus("error")
@@ -62,7 +65,7 @@ export function VideoUploader() {
   return (
     <Card className="w-full max-w-md mx-auto">
       <CardHeader>
-        <CardTitle>Video Uploader with Fake Detection</CardTitle>
+        <CardTitle>Video Uploader with Deepfake Detection</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="flex items-center justify-center w-full">
@@ -114,19 +117,20 @@ export function VideoUploader() {
           </div>
         )}
 
-        {status === "complete" && (
-          <div className="flex items-center space-x-2">
-            {isFake ? (
-              <>
+        {status === "complete" && fakePercentage !== null && isLikelyDeepfake !== null && (
+          <div className="space-y-2">
+            <div className="flex items-center space-x-2">
+              {isLikelyDeepfake ? (
                 <AlertCircle className="text-red-500" />
-                <p className="font-medium text-red-500">This video may be fake.</p>
-              </>
-            ) : (
-              <>
+              ) : (
                 <CheckCircle className="text-green-500" />
-                <p className="font-medium text-green-500">This video appears to be genuine.</p>
-              </>
-            )}
+              )}
+              <p className={`font-medium ${isLikelyDeepfake ? 'text-red-500' : 'text-green-500'}`}>
+                {isLikelyDeepfake ? 'This video is likely a deepfake.' : 'This video is likely genuine.'}
+              </p>
+            </div>
+            <p className="text-sm">Fake Percentage: {fakePercentage.toFixed(2)}%</p>
+            <Progress value={fakePercentage} className="w-full" />
           </div>
         )}
 
