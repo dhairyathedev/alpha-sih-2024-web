@@ -1,19 +1,39 @@
 "use client"
-import { useState, useRef } from "react"
+import { useState, useRef, useEffect } from "react"
 import { Upload, CheckCircle, AlertCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import io from 'socket.io-client'
 
 export function VideoUploader() {
   const [file, setFile] = useState<File | null>(null)
   const [uploadProgress, setUploadProgress] = useState(0)
-  const [predictionProgress, setPredictionProgress] = useState(0)
-  const [status, setStatus] = useState<"idle" | "uploading" | "predicting" | "complete" | "error">("idle")
+  const [analysisProgress, setAnalysisProgress] = useState(0)
+  const [status, setStatus] = useState<"idle" | "uploading" | "analyzing" | "complete" | "error">("idle")
   const [fakePercentage, setFakePercentage] = useState<number | null>(null)
   const [isLikelyDeepfake, setIsLikelyDeepfake] = useState<boolean | null>(null)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const videoRef = useRef<HTMLVideoElement>(null)
+  const socketRef = useRef<any>(null)
+
+  useEffect(() => {
+    socketRef.current = io('https://dhairyashah-deepfake-alpha-version.hf.space')
+
+    socketRef.current.on('upload_progress', (data: { progress: number }) => {
+      setUploadProgress(data.progress)
+    })
+
+    socketRef.current.on('analysis_progress', (data: { progress: number }) => {
+      setAnalysisProgress(data.progress)
+    })
+
+    return () => {
+      if (socketRef.current) {
+        socketRef.current.disconnect()
+      }
+    }
+  }, [])
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = event.target.files?.[0]
@@ -21,7 +41,7 @@ export function VideoUploader() {
       setFile(selectedFile)
       setStatus("idle")
       setUploadProgress(0)
-      setPredictionProgress(0)
+      setAnalysisProgress(0)
       setFakePercentage(null)
       setIsLikelyDeepfake(null)
       setErrorMessage(null)
@@ -47,15 +67,15 @@ export function VideoUploader() {
         throw new Error(`HTTP error! status: ${response.status}`)
       }
 
-      setStatus("predicting")
-      setPredictionProgress(0)
+      setStatus("analyzing")
+      setAnalysisProgress(0)
 
       const result = await response.json()
       
       setStatus("complete")
       setFakePercentage(result.fake_percentage)
       setIsLikelyDeepfake(result.is_likely_deepfake)
-      setPredictionProgress(100)
+      setAnalysisProgress(100)
     } catch (error) {
       setStatus("error")
       setErrorMessage(error instanceof Error ? error.message : "An unknown error occurred")
@@ -65,7 +85,7 @@ export function VideoUploader() {
   return (
     <Card className="w-full max-w-md mx-auto">
       <CardHeader>
-        <CardTitle>Check video for Deepfakes</CardTitle>
+        <CardTitle>Video Uploader with Deepfake Detection</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="flex items-center justify-center w-full">
@@ -103,17 +123,17 @@ export function VideoUploader() {
           </>
         )}
 
-        {status === "uploading" && (
+{status === "uploading" && (
           <div className="space-y-2">
             <p className="text-sm font-medium">Uploading...</p>
             <Progress value={uploadProgress} className="w-full" />
           </div>
         )}
 
-        {status === "predicting" && (
+        {status === "analyzing" && (
           <div className="space-y-2">
             <p className="text-sm font-medium">Analyzing...</p>
-            <Progress value={predictionProgress} className="w-full" />
+            <Progress value={analysisProgress} className="w-full" />
           </div>
         )}
 
