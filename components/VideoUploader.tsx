@@ -38,7 +38,7 @@ export function VideoUploader() {
     formData.append('video', file)
 
     try {
-      const response = await fetch('https://dhairyashah-flask-app.hf.space/analyze', {
+      const response = await fetch('https://dhairyashah-deepfake-alpha-version.hf.space/analyze', {
         method: 'POST',
         body: formData,
       })
