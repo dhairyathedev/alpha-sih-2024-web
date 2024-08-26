@@ -1,49 +1,28 @@
 "use client"
 
-import { useState, useRef, useEffect } from "react"
+import { useState, useRef } from "react"
 import { Upload, CheckCircle, AlertCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import io from 'socket.io-client'
 
 export function VideoUploader() {
   const [file, setFile] = useState<File | null>(null)
   const [uploadProgress, setUploadProgress] = useState(0)
-  const [analysisProgress, setAnalysisProgress] = useState(0)
-  const [status, setStatus] = useState<"idle" | "uploading" | "analyzing" | "complete" | "error">("idle")
+  const [predictionProgress, setPredictionProgress] = useState(0)
+  const [status, setStatus] = useState<"idle" | "uploading" | "predicting" | "complete" | "error">("idle")
   const [fakePercentage, setFakePercentage] = useState<number | null>(null)
   const [isLikelyDeepfake, setIsLikelyDeepfake] = useState<boolean | null>(null)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
-  const [isDragging, setIsDragging] = useState(false)
   const videoRef = useRef<HTMLVideoElement>(null)
-  const socketRef = useRef<any>(null)
-  const fileInputRef = useRef<HTMLInputElement>(null)
 
-  useEffect(() => {
-    socketRef.current = io('https://dhairyashah-deepfake-alpha-version.hf.space')
-
-    socketRef.current.on('upload_progress', (data: { progress: number }) => {
-      setUploadProgress(data.progress)
-    })
-
-    socketRef.current.on('analysis_progress', (data: { progress: number }) => {
-      setAnalysisProgress(data.progress)
-    })
-
-    return () => {
-      if (socketRef.current) {
-        socketRef.current.disconnect()
-      }
-    }
-  }, [])
-
-  const handleFileChange = (selectedFile: File) => {
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const selectedFile = event.target.files?.[0]
     if (selectedFile && selectedFile.type.startsWith("video/")) {
       setFile(selectedFile)
       setStatus("idle")
       setUploadProgress(0)
-      setAnalysisProgress(0)
+      setPredictionProgress(0)
       setFakePercentage(null)
       setIsLikelyDeepfake(null)
       setErrorMessage(null)
@@ -69,45 +48,19 @@ export function VideoUploader() {
         throw new Error(`HTTP error! status: ${response.status}`)
       }
 
-      setStatus("analyzing")
-      setAnalysisProgress(0)
+      setStatus("predicting")
+      setPredictionProgress(0)
 
       const result = await response.json()
       
       setStatus("complete")
       setFakePercentage(result.fake_percentage)
       setIsLikelyDeepfake(result.is_likely_deepfake)
-      setAnalysisProgress(100)
+      setPredictionProgress(100)
     } catch (error) {
       setStatus("error")
       setErrorMessage(error instanceof Error ? error.message : "An unknown error occurred")
     }
-  }
-
-  const handleDragEnter = (e: React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault()
-    e.stopPropagation()
-    setIsDragging(true)
-  }
-
-  const handleDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault()
-    e.stopPropagation()
-    setIsDragging(false)
-  }
-
-  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault()
-    e.stopPropagation()
-  }
-
-  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault()
-    e.stopPropagation()
-    setIsDragging(false)
-
-    const droppedFile = e.dataTransfer.files[0]
-    handleFileChange(droppedFile)
   }
 
   return (
@@ -116,19 +69,10 @@ export function VideoUploader() {
         <CardTitle>Video Uploader with Deepfake Detection</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div
-          className={`flex items-center justify-center w-full ${
-            isDragging ? 'border-blue-500 bg-blue-50' : 'border-gray-300 bg-gray-50'
-          } border-2 border-dashed rounded-lg cursor-pointer dark:hover:bg-bray-800 dark:bg-gray-700 hover:bg-gray-100 dark:border-gray-600 dark:hover:border-gray-500 dark:hover:bg-gray-600`}
-          onDragEnter={handleDragEnter}
-          onDragLeave={handleDragLeave}
-          onDragOver={handleDragOver}
-          onDrop={handleDrop}
-          onClick={() => fileInputRef.current?.click()}
-        >
+        <div className="flex items-center justify-center w-full">
           <label
             htmlFor="video-upload"
-            className="flex flex-col items-center justify-center w-full h-64"
+            className="flex flex-col items-center justify-center w-full h-64 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 dark:hover:bg-bray-800 dark:bg-gray-700 hover:bg-gray-100 dark:border-gray-600 dark:hover:border-gray-500 dark:hover:bg-gray-600"
           >
             <div className="flex flex-col items-center justify-center pt-5 pb-6">
               <Upload className="w-8 h-8 mb-4 text-gray-500 dark:text-gray-400" />
@@ -138,12 +82,11 @@ export function VideoUploader() {
               <p className="text-xs text-gray-500 dark:text-gray-400">MP4, WebM, or OGG (MAX. 800MB)</p>
             </div>
             <input
-              ref={fileInputRef}
               id="video-upload"
               type="file"
               className="hidden"
               accept="video/*"
-              onChange={(e) => e.target.files && handleFileChange(e.target.files[0])}
+              onChange={handleFileChange}
             />
           </label>
         </div>
@@ -168,10 +111,10 @@ export function VideoUploader() {
           </div>
         )}
 
-        {status === "analyzing" && (
+        {status === "predicting" && (
           <div className="space-y-2">
             <p className="text-sm font-medium">Analyzing...</p>
-            <Progress value={analysisProgress} className="w-full" />
+            <Progress value={predictionProgress} className="w-full" />
           </div>
         )}
 
