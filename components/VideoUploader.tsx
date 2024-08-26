@@ -65,7 +65,7 @@ export function VideoUploader() {
   return (
     <Card className="w-full max-w-md mx-auto">
       <CardHeader>
-        <CardTitle>Video Uploader with Deepfake Detection</CardTitle>
+        <CardTitle>Check video for Deepfakes</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="flex items-center justify-center w-full">
