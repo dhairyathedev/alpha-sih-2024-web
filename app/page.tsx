@@ -1,4 +1,4 @@
-import { VideoUploader } from "@/components/VideoUploader";
+import {VideoUploader} from "@/components/VideoUploader";
 import Image from "next/image";
 
 export default function Home() {
