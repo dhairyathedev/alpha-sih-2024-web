@@ -148,7 +148,7 @@ export function VideoUploader() {
               <p className="mb-2 text-sm text-gray-500 dark:text-gray-400">
                 <span className="font-semibold">Click to upload</span> or drag and drop
               </p>
-              <p className="text-xs text-gray-500 dark:text-gray-400">MP4, WebM, or OGG (MAX. 800MB)</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">MP4, WebM, or OGG (MAX. 16MB)</p>
             </div>
             <input
               id="video-upload"
